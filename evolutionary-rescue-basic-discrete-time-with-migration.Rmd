@@ -46,8 +46,8 @@ We want to observe the numbers of wild-type and mutant individuals over time. As
 ## Include competition with logistic growth and migration
 Steps of the life cycle:
 
-*adult migrants of type a arrive
-*reproduction: a individuals always suffer from the decay rate, independent of the current population size; the growth rate of A individuals decreases to 1 as the carrying capacity is approached
+*adult migrants of type $a$ arrive
+*reproduction: $a$ individuals always suffer from the decay rate, independent of the current population size; the growth rate of $A$ individuals decreases to 1 as the carrying capacity is approached
 *mutation occurs
 
 
@@ -116,7 +116,7 @@ simulate_pop_mig_logistic <- function(N_init_a, N_init_A, carrying_capacity, dec
 # set t_max to a value to be used througout
 max_gen <- 500
 # create your simulation data
-output <- simulate_pop_mig_logistic(10,1,50,0.1,0.2,0.001,2,max_gen)
+output <- simulate_pop_mig_logistic(100,0,100,0.1,0.2,0.001,2,max_gen)
 # show the last few lines of the data table
 print(tail(output))
 # plot the output - note that the plot range and the x axis have to be adjusted based on the length of the table
@@ -130,86 +130,5 @@ lines(x_range,output[,1], col="blue")
 lines(x_range,output[,2], col="red")
 ```
 
-### Questions
 
--   What is the difference between `pop_vector` and `pop_new`?
--   What is the condition that breaks the loop good for? What are its disadvantages?
--   What does the function `tail` do?
 
-## A small analysis
-
-As you can see if you simulate and plot the output several times, there is a lot of stochasticity/variation in the outcome. Therefore, to get interpretable results, we have to run the simulation many times and summarize the outcome depending on the question of our study. Here I am showing an example in which we record the time and the value of the lowest population size (or the time of extinction, if the population size eventually goes to 0). Usually, we want to study this for a range of model parameters; here I am varying the decay rate and the selection coefficient. Other (maybe more interesting) features to study would be the following:
-
--   rescue probability dependent on initial frequency and selection coefficient
--   time at which the rescue mutation occurs first if it rescues, vs. if it doesn't rescue, dependent on initial population size and mutation rate
--   time until the population has recovered in case it becomes rescued, dependent on mutation rate and selection coefficient
--   ...
-
-```{r}
-# # 
-# init_a <- 100
-# init_A <- 0
-# m_rate <- 0.001
-# max_gen <- 1000
-# # determine how often to run the simulation for each set of parameters
-# no_replicates <- 100
-# 
-# # set parameters to vary
-# s_values <- c(0.2,0.3,0.4)
-# r_values <- c(0.05,0.1,0.15)
-
-# set some parameters to fixed values
-init_a <- 100 # original/default: 100
-init_A <- 0
-m_rate <- 0.001
-max_gen <- 1000
-# determine how often to run the simulation for each set of parameters
-no_replicates <- 100
-
-# set parameters to vary
-s_values <- c(0.2,0.3,0.4)
-r_values <- c(0.05,0.1,0.15)
-
-# initialize data table - where to collect the results
-data_table <- c()
-# run the simulation across all chosen parameters
-# loop over decay rates
-for(rval in r_values){
-  # loop over selection coefficients
-  for(sval in s_values){
-    # different way of running many simulations: make replicates using "repeat" function with a counter i
-    # reset counter
-    i<-1
-    repeat {
-      # increase counter by one
-      i<-i+1
-      # run the simulation once
-      one_run <- simulate_pop(init_a,init_A,rval,sval,m_rate,max_gen)
-      # determine total population sizes
-      total_size <- one_run[,1]+one_run[,2]
-      # determine minimum population size
-      min_size <- min(total_size)
-      # determine (first) generation at which this population size occurred
-      min_gen <- as.numeric(which(total_size==min_size)[1])
-      # enter the data into the table
-      data_table <- rbind(data_table,c(rval,sval,min_gen,min_size)) # note that we add the varying parameters (decay rate and selection coefficient) to the table too
-      # stop the repeated computation after no_replicates times
-      if(i>no_replicates) break
-    }
-  }
-}
-# define column names of data table
-colnames(data_table) <- c("r","s","min_gen","no_min")
-# show the first lines of the output
-print(head(data_table))
-```
-
-### Questions
-
--   Why does this code block run much more slowly than the others?
--   Why is it useful to define the parameters at the beginning (e.g. `init_a=100`) and use their names rather than the numbers throughout the rest of the code?
--   What does the function `which` do?
-
-## Next steps
-
-So, where do you go from here? Of course you won't just stare at these tables (at least not forever). Visualization would be a good step to see how the minimum population size varies with the decay rate and the selection coefficient. And you might want to include only the cases in which rescue happens, and also extract the rescue probability in parallel. However, the idea is that you pick a question that you find (more) interesting and implement modified versions of this code to address your question of choice.
