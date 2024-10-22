@@ -133,6 +133,13 @@ simulate_pop_table <- function(N_init_a, N_init_A, decay_vector, sel_vector, mut
   }
   return(pop_table)	
 }
- print(simulate_pop_table(N_init_a=10, N_init_A=0, decay_vector, sel_vector, mut_rate=0.1))
+
+# Here we determine the run time of the simulation
+start_time <- Sys.time()
+output <- simulate_pop_table(N_init_a=10, N_init_A=0, decay_vector, sel_vector, mut_rate=0.1)
+end_time <- Sys.time()
+run_time <- end_time - start_time
+print(run_time)
+print(output)
 ```
 
