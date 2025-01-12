@@ -41,7 +41,7 @@ Steps of the life cycle:
 ```{r}
 simulate_one_gen_mig_logistic <- function(N_a, N_A, carrying_capacity, decay_rate, sel_coeff, mut_rate, mig_rate_a) {
   # adult migrants arrive and are added to 'a' population
-  N_a_mig <- rpois(1, mig_rate_a)
+  N_a_mig <- rpois(1, mig_rate_a) # stochastic immigration
   N_a <- N_a + N_a_mig
   
   # determine total population size
@@ -49,7 +49,15 @@ simulate_one_gen_mig_logistic <- function(N_a, N_A, carrying_capacity, decay_rat
   
   # reproduction occurs according to decay rates and selection coefficients
   offsp_a <- rpois(1, N_a * (1-decay_rate)) # independent of carrying capacity
-  offsp_A <- rpois(1, min(N_A + N_A*(sel_coeff-decay_rate)*(1-N_total/carrying_capacity),N_A)) # slows down to 1 as the carrying capacity is reached
+  offsp_A <- rpois(1, N_A + N_A*(sel_coeff-decay_rate)*(1-N_total/carrying_capacity))
+  # randomly kill individuals if carrying capacity is exceeded
+  offsp_total <- offsp_A + offsp_a
+  if(offsp_total > carrying_capacity)
+  {
+    offsp_a <- rbinom(1,carrying_capacity,c(offsp_a,offsp_A)/offsp_total)
+    offsp_A <- carrying_capacity-offsp_a
+  }
+
   
   # draw new mutants according to Poisson distribution
   mut_a_to_A <- rpois(1, offsp_a * mut_rate)
@@ -61,7 +69,7 @@ simulate_one_gen_mig_logistic <- function(N_a, N_A, carrying_capacity, decay_rat
   return(c(N_a_new, N_A_new))
 }
 # Test the function
-print(simulate_one_gen_mig_logistic(N_a=100, N_A=0, carrying_capacity=100, decay_rate=0.1, sel_coeff=0.3, mut_rate=0.1, mig_rate_a=1))
+print(simulate_one_gen_mig_logistic(N_a=50, N_A=0, carrying_capacity=50, decay_rate=0.1, sel_coeff=0.3, mut_rate=0.1, mig_rate_a=1))
 
 ```
 
@@ -101,9 +109,9 @@ simulate_pop_mig_logistic <- function(N_init_a, N_init_A, carrying_capacity, dec
 
 # Test the function and plot the result
 # set t_max to a value to be used througout
-max_gen <- 500
+max_gen <- 5000
 # create your simulation data
-output <- simulate_pop_mig_logistic(100,0,100,0.1,0.2,0.001,2,max_gen)
+output <- simulate_pop_mig_logistic(1000,0,1000,0.1,0.3,0.001,3,max_gen)
 # show the last few lines of the data table
 print(tail(output))
 # plot the output - note that the plot range and the x axis have to be adjusted based on the length of the table
@@ -117,5 +125,53 @@ lines(x_range,output[,1], col="blue")
 lines(x_range,output[,2], col="red")
 ```
 
+## What could be interesting analysis outputs from this model?
+
+Important to note: extinction is impossible because new migrants always come in. But it seems that for high immigration rates and relatively low carrying capacity, the mutant can repeatedly get lost even if it is advantageous in the environment. This complicates the analysis.
+
+### What could we measure?
+
+- Time until the carrying capacity is reached. *This indicates that the mutant has taken over and "rescued" the population -- at least temporarily.*
+- Average frequency of the two types over the last XXX (number to be determined, e.g. 100 or 1000?) generations of the simulation. *This describes how much the population is suffering from the inflow of deleterious genotypes.*
+- Count whether or how often or how fast the mutant is lost again after "rescuing" the population. *This describes how sensitive the rescued population is to swamping from the upstream population.*
+
+### Which parameters to vary, and which to keep constant?
 
 
+
+
+
+## Find time to carrying capacity
+
+We can now track the dynamics of the population from one generation to another, but this is not enough. We want to follow the population from time 0 until it either is rescued or goes extinct. This is what the following function does.
+
+```{r}
+simulate_pop_mig_logistic <- function(N_init_a, N_init_A, carrying_capacity, decay_rate, sel_coeff, mut_rate, mig_rate_a, t_max) {
+  
+  # initiate the variables
+  pop_new <- c(N_init_a, N_init_A)
+  # start counting generations
+  gen <- 0
+  
+  # run the simulation until generation t_max
+  for (i in 1:t_max+1) {
+    # redefine the current population one generation later
+    pop_new <- simulate_one_gen_mig_logistic(pop_new[1],pop_new[2],carrying_capacity, decay_rate, sel_coeff, mut_rate, mig_rate_a)
+    # adding one generation to counter
+    gen <- gen+1
+    # calculate population size
+    N_total <- sum(pop_new)
+    # stop when carrying capacity is reached
+    if (N_total == carrying_capacity) break
+  }
+  return(gen)	
+}
+
+
+# Test the function and plot the result
+# set t_max to a value to be used througout
+max_gen <- 100
+# create your simulation data
+output <- simulate_pop_mig_logistic(1000,0,1000,0.1,0.3,0.001,3,max_gen)
+print(output)
+```
